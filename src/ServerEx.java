@@ -3,6 +3,48 @@ import java.net.*;
 import java.util.Scanner;
 
 public class ServerEx {
+    public static void main(String[] args){
+        ServerSocket listener = null; //클라이언트의 접속을 기다리는 서버 소켓
+        Socket socket = null; //클라이언트와 1:1 통신
+        BufferedReader in = null; //클라이언트로부터 데이터를 읽어올 스트림
+        BufferedWriter out = null; //클라이언트에게 데이터를 보낼 스트림
+        int nPort=1234;
+
+        try {
+        //포트번호 1234로 서버 소켓을 생성하고,이 포트로 들어오는 연결 요청을 받을 준비를 함.
+        listener = new ServerSocket(nPort);
+        System.out.println("연결을 기다리고 있습니다.....");
+        //.accept가 호출 -> 클라이언트가 접속할 때까지 대기 -> 클라이언트 접속 -> 통신용 socket반환 및 진행
+        socket=listener.accept();
+        System.out.println("연결되었습니다.");
+
+        in = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream())); //클라이언트의 데이터를 읽음
+        
+        out = new BufferedWriter(
+                    new OutputStreamWriter(socket.getOutputStream())); //클라이언트에게 데이터를 보냄
+
+        while(true){
+            String inputMessage = in.readLine(); //클라이언트가 한 줄의 메시지를 보낼 때까지 대기
+            
+            // 클라이언트가 갑자기 연결을 끊었을 때 null이 반환됨.
+            if (inputMessage == null) {
+                System.out.println("클라이언트 연결이 끊어졌습니다.");
+                break;
+            }
+
+            //클라이언트가 "bye" (대소문자 무관)를 보냈는지 확인
+            if (inputMessage.equalsIgnoreCase("bye")) {
+                System.out.println("클라이언트에서 연결을 종료하였음");
+                break; // "bye"를 받으면 루프 종료
+            }
+
+            System.out.println(inputMessage); //받은 메시지를 화면에 출력
+
+
+            }
+        }
+    }
   
 }
 
