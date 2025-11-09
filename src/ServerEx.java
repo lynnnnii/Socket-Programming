@@ -43,6 +43,19 @@ public class ServerEx {
 
 
             }
+        } catch (IOException e) {
+            System.out.println("서버 오류: " + e.getMessage()); //예외처리
+        } finally {
+            System.out.println("서버를 종료합니다."); //예외가 발생하든,정상 종료되든 항상 실행
+        } try{
+            //연 순서의 역순으로 닫는다.
+            if (out != null) out.close(); // 출력 스트림 닫기
+                if (in != null) in.close(); // 입력 스트림 닫기
+                if (socket != null) socket.close(); // 클라이언트 통신용 소켓 닫기
+                if (listener != null) listener.close(); // 서버 대기용 소켓 닫기
+        } catch (IOException e) {
+            System.out.println("자원 정리 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
         }
     }
   
