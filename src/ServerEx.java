@@ -3,85 +3,89 @@ import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
 public class ServerEx {
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         ServerSocket listener = null;
-        int nPort=1234;
+        int nPort = 1234;
 
+        // Create a thread pool that can handle up to 10 concurrent clients
         ExecutorService threadPool = Executors.newFixedThreadPool(10);
-        //최대 10개 스레드(10명 동시 처리)
 
         try {
-            //포트번호 1234로 서버 소켓 생성
+            // Create a server socket listening on port 1234
             listener = new ServerSocket(nPort);
-            System.out.println("멀티 스레드 서버가 " + nPort + " 포트에서 대기 중입니다...");
+            System.out.println("Multi-threaded server is waiting on port " + nPort + "...");
 
-            //서버가 종료되지 않고 계속 클라이언트를 받음
-            while(true){
-                
-                Socket socket = listener.accept(); //클라이언트 접속 대기(1명이 옴)
-                threadPool.submit(new ClientHandler(socket)); //1명이 오자마자 ClientHandler에게 맡기고 스레드풀에 보냄
+            // Keep the server running and continuously accept new clients
+            while (true) {
+                Socket socket = listener.accept(); // Wait for a client to connect
+                threadPool.submit(new ClientHandler(socket)); // Assign the client to a thread in the pool
             }
         } catch (IOException e) {
-            System.out.println("서버 메인 오류: " + e.getMessage()); //예외처리
+            System.out.println("Main server error: " + e.getMessage());
         } finally {
-            System.out.println("서버를 종료합니다."); 
-            
-            try{ 
+            System.out.println("Server shutting down...");
+
+            try {
                 if (listener != null) listener.close();
-                if (threadPool != null) threadPool.shutdown(); 
+                if (threadPool != null) threadPool.shutdown();
             } catch (IOException e) {
-                System.out.println("서버 자원 정리 중 오류 발생: " + e.getMessage());
+                System.out.println("Error while closing server resources: " + e.getMessage());
                 e.printStackTrace();
             }
         }
     }
 
+    // A class responsible for handling communication with one connected client
     static class ClientHandler implements Runnable {
 
-        private Socket socket; // 이 스레드가 담당할 클라이언트의 소켓
+        private Socket socket; // Socket for the connected client
         private BufferedReader in = null;
         private BufferedWriter out = null;
 
-        //main 서버가 accept()한 소켓을 받음.
+        // Constructor receives the socket accepted by the main server
         public ClientHandler(Socket socket) {
             this.socket = socket;
         }
 
-        //스레드 풀에 보내면 자동으로 이 메소드가 실행됨
+        // Automatically executed when submitted to the thread pool
         @Override
         public void run() {
-            System.out.println(Thread.currentThread().getName() + ": " + 
-                               socket.getInetAddress() + " 클라이언트 연결 처리 시작...");
-            
+            System.out.println(Thread.currentThread().getName() + ": Handling client connection from " +
+                               socket.getInetAddress() + "...");
+
             try {
-                //스트림 설정
+                // Set up input/output streams
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-                // 통신 로직 (무한 루프)
+                // Communication loop
                 while (true) {
                     String inputMessage = in.readLine();
 
+                    // Handle disconnection or "bye" command
                     if (inputMessage == null || inputMessage.equalsIgnoreCase("bye")) {
-                        System.out.println(Thread.currentThread().getName() + ": 클라이언트 연결 종료 (" + 
-                                           socket.getInetAddress() + ")");
-                        break; // 루프 종료 -> run() 메소드 종료 -> 스레드 반납
+                        System.out.println(Thread.currentThread().getName() +
+                                           ": Client disconnected (" + socket.getInetAddress() + ")");
+                        break;
                     }
 
-                    System.out.println(Thread.currentThread().getName() + "로부터 받음: " + inputMessage);
+                    System.out.println(Thread.currentThread().getName() +
+                                       " received: " + inputMessage);
+
                     String res = processRequest(inputMessage);
 
-                    
+                    // Send response back to the client
                     out.write(res + "\n");
                     out.flush();
-                    System.out.println(Thread.currentThread().getName() + "으로 보냄: " + res);
+                    System.out.println(Thread.currentThread().getName() +
+                                       " sent: " + res);
                 }
 
             } catch (IOException e) {
-                System.out.println(Thread.currentThread().getName() + ": 통신 오류 - " + e.getMessage());
+                System.out.println(Thread.currentThread().getName() +
+                                   ": Communication error - " + e.getMessage());
             } finally {
                 try {
                     if (out != null) out.close();
@@ -93,12 +97,14 @@ public class ServerEx {
             }
         }
 
+        // Process and evaluate client requests (e.g., ADD 10 20)
         private String processRequest(String request) {
             try {
                 String[] tokens = request.trim().split(" ");
                 if (tokens.length != 3) {
                     return "401 TOO_MANY_ARGS";
                 }
+
                 String command = tokens[0].toUpperCase();
                 int NUM1 = Integer.parseInt(tokens[1]);
                 int NUM2 = Integer.parseInt(tokens[2]);
@@ -106,7 +112,7 @@ public class ServerEx {
                 switch (command) {
                     case "ADD": return "200 " + (NUM1 + NUM2);
                     case "SUB": return "200 " + (NUM1 - NUM2);
-                    case "MUL": return "200 " + (NUM1 + NUM2); // [버그 수정] MUL (곱하기)로 변경
+                    case "MUL": return "200 " + (NUM1 * NUM2); // Fixed: multiplication
                     case "DIV":
                         if (NUM2 == 0) {
                             return "400 Bad Request (Divide by Zero)";
@@ -114,7 +120,7 @@ public class ServerEx {
                             return "200 " + (NUM1 / NUM2);
                         }
                     default:
-                        return "401 Bad Request (Invalid Format)";
+                        return "401 Bad Request (Invalid Command)";
                 }
             } catch (NumberFormatException e) {
                 return "401 Bad Request (Invalid Format)";
@@ -123,7 +129,5 @@ public class ServerEx {
                 return "500 Internal Server Error";
             }
         }
-    } 
-
-
-} 
+    }
+}

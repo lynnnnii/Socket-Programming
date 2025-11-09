@@ -4,109 +4,103 @@ import java.util.Scanner;
 
 public class ClientEx {
 
-    public static void main(String[] args){
-        String serverIp = "localhost"; // 기본 IP
-        int port = 1234; // 기본 포트
+    public static void main(String[] args) {
+        String serverIp = "localhost"; // default IP
+        int port = 1234; // default port
         String configFileName = "server_info.dat";
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(configFileName))) {
-            //파일 읽기 시도
-            System.out.println(configFileName + " 파일에서 서버 정보를 읽습니다.");
-            serverIp = fileReader.readLine(); // 첫 번째 줄을 IP로 읽음
-            port = Integer.parseInt(fileReader.readLine()); // 두 번째 줄을 포트로 읽음
-            
-            if (serverIp == null) serverIp = "localhost"; // 파일은 있으나 내용이 비었을 경우 대비
+            // Try reading configuration file
+            System.out.println("Reading server information from " + configFileName);
+            serverIp = fileReader.readLine(); // 1st line: IP address
+            port = Integer.parseInt(fileReader.readLine()); // 2nd line: port number
+
+            if (serverIp == null) serverIp = "localhost"; // In case file exists but IP line is empty
 
         } catch (FileNotFoundException e) {
-            //파일이 없을 경우 (예외 처리)
-            System.out.println(configFileName + " 파일을 찾을 수 없습니다.");
-            System.out.println("기본 정보(" + serverIp + ":" + port + ")로 접속을 시도합니다.");
-            // IP와 Port는 이미 기본값으로 설정되어 있으므로 아무것도 안 해도 됨
+            // File not found → use default values
+            System.out.println(configFileName + " not found.");
+            System.out.println("Attempting to connect with default configuration (" + serverIp + ":" + port + ").");
         } catch (IOException e) {
-            //파일 읽기 중 오류 발생
-            System.out.println(configFileName + " 파일 읽기 중 오류 발생: " + e.getMessage());
-            return; // 프로그램 종료
+            // Error while reading file
+            System.out.println("Error occurred while reading " + configFileName + ": " + e.getMessage());
+            return;
         } catch (NumberFormatException e) {
-            //포트 번호가 숫자가 아닐 경우
-            System.out.println(configFileName + "에 포트 번호가 잘못 기록되었습니다. 기본 포트(1234)를 사용합니다.");
+            // Port number is not numeric
+            System.out.println("Invalid port number in " + configFileName + ". Using default port (1234).");
             port = 1234;
         }
 
-        System.out.println("서버 접속 시도: " + serverIp + ":" + port);
+        System.out.println("Trying to connect to server: " + serverIp + ":" + port);
 
-
-        //서버 접속 및 통신
+        // Socket and I/O stream setup
         BufferedReader in = null;
         BufferedWriter out = null;
         Socket socket = null;
-        Scanner scanner = new Scanner(System.in); //키보드 입력을 받기 위한 scanner
-
+        Scanner scanner = new Scanner(System.in); // For user keyboard input
 
         try {
-            //서버에 접속 (Socket 생성)
+            // Connect to the server
             socket = new Socket(serverIp, port);
-            System.out.println("서버에 연결되었습니다.");
+            System.out.println("Connected to the server.");
 
-        
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-            //입력 및 통신 시작 
+            // Start communication loop
             while (true) {
-                System.out.print("계산식 (예: ADD 10 20) >> ");
-                String outputMessage = scanner.nextLine(); // 키보드에서 한 줄 입력 받음
+                System.out.print("Enter expression (e.g., ADD 10 20) >> ");
+                String outputMessage = scanner.nextLine(); // Read one line from user
 
-                //서버로 메시지 전송
+                // Send message to server
                 out.write(outputMessage + "\n");
                 out.flush();
 
-                //사용자가 "bye"를 입력하면 루프 종료
+                // Terminate if user types "bye"
                 if (outputMessage.equalsIgnoreCase("bye")) {
-                    System.out.println("연결을 종료합니다.");
+                    System.out.println("Closing connection...");
                     break;
                 }
 
-                //서버로부터 응답 받기 (대기)
+                // Wait for server response
                 String inputMessage = in.readLine();
                 if (inputMessage == null) {
-                    System.out.println("서버 연결이 끊어졌습니다.");
+                    System.out.println("Server connection closed.");
                     break;
                 }
 
-                //받은 응답을 파싱해서 출력 (프로토콜 기반)
+                // Parse and display server response
                 processResponse(inputMessage);
             }
 
         } catch (UnknownHostException e) {
-            System.out.println("서버 IP를 찾을 수 없습니다 (" + serverIp + ")");
+            System.out.println("Cannot find server IP (" + serverIp + ")");
         } catch (IOException e) {
-            System.out.println("서버와 통신 중 오류 발생: " + e.getMessage());
+            System.out.println("I/O error occurred during communication: " + e.getMessage());
         } finally {
-            //모든 자원 정리
+            // Release all resources
             try {
-                scanner.close(); // 스캐너 닫기
+                scanner.close();
                 if (out != null) out.close();
                 if (in != null) in.close();
                 if (socket != null) socket.close();
             } catch (IOException e) {
-                System.out.println("자원 정리 중 오류 발생: " + e.getMessage());
+                System.out.println("Error while closing resources: " + e.getMessage());
             }
         }
     }
 
-    //응답을 사용자에게 보여주는 부분
+    // Handle and display the response from the server
     private static void processResponse(String response) {
-        String[] tokens = response.split(" ", 2); // 응답을 [코드]와 [데이터] 2개로만 나눔
+        String[] tokens = response.split(" ", 2); // Split response into [status code] and [data]
         String statusCode = tokens[0];
 
         if (statusCode.equals("200")) {
-            // 성공
+            // Success
             System.out.println("Answer: " + tokens[1]);
         } else {
-            // 실패 (400, 401)
-            System.out.println("Error: " + tokens[1]); // 에러 메시지(데이터) 출력
+            // Failure (400, 401, etc.)
+            System.out.println("Error: " + tokens[1]);
         }
-
     }
-
 }
