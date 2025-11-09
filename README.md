@@ -6,4 +6,4 @@
 ```
 calculate/
 |
-|---- .vscode/          # VSCode 편집기 설정
+ㅏ--- .vscode/          # VSCode 편집기 설정
