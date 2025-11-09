@@ -7,3 +7,8 @@
 calculate/
 |
 ㅏ--- .vscode/          # VSCode 편집기 설정
+
+
+##구조도
+<img width="821" height="476" alt="image" src="https://github.com/user-attachments/assets/277990aa-7595-4eb2-8f3e-efe19b9daa87" />
+
