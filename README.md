@@ -2,7 +2,7 @@
 자바(Java) 소켓 API와 스레드 풀을 사용하여 다중 클라이언트의 동시 접속을 처리하는 간단한 사칙연산 계산기 서버 및 클라이언트입니다
 
 
-##구조도
+## 구조도
 <img width="821" height="476" alt="image" src="https://github.com/user-attachments/assets/277990aa-7595-4eb2-8f3e-efe19b9daa87" />
 
 
@@ -10,7 +10,15 @@
 이 프로젝트는 표준 Java 프로젝트 구조를 따릅니다.
 ```
 calculate/
-|
-ㅏ--- .vscode/          # VSCode 편집기 설정
-
+│
+├─ .vscode/
+├─ bin/
+├─ lib/
+├─ src/
+│  ├─ ClientEx.java
+│  └─ ServerEx.java
+│
+├─ .gitignore
+├─ README.md
+└─ server_info.dat
 
